@@ -7,7 +7,6 @@ def fc(arg, inputs, weights, nhidden):
     
     return mx.sym.FullyConnected(fc1_dropout, weights['w_' + arg], weights['b_' + arg], nhidden)
 
-
 def conv(arg, inputs, weights):
 
     pass

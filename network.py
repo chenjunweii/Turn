@@ -1,14 +1,48 @@
 import mxnet as mx
 
-def mlp(inputs, weights, nhidden):
+def fc(name, inputs, weights, nhidden, mode = ''):
+
+    if mode == '':
+
+        weights['w_' + name] = mx.sym.Variable('w_' + name)
+
+        weights['b_' + name] = mx.sym.Variable('b_' + name)
+
+        return mx.sym.FullyConnected(inputs, weights['w_' + name], weights['b_' + name], nhidden)
+
+    elif mode == 'tit':
+
+        return mx.sym.FullyConnected(inputs, weights['w_' + name], weights['b_' + name], nhidden, name = name + '_' + mode)
+
+def mlp(inputs, weights, nhidden, mode, dropout = 0.5):
 
     fc1 = fc('fc1', inputs, weights, nhidden)
     
     fc1_relu = mx.sym.Activation(fc1, 'relu')
 
-    fc1_dropout = mx.sym.Dropout(fc1, 0.5)
+    outputs = None
+
+    if mode == 'train':
+
+        fc1_dropout = mx.sym.Dropout(fc1_relu, dropout)
+
+        outputs = fc('outputs', fc1_dropout, weights, 3)
+
+    elif mode == 'inf':
+
+        outputs = fc('outputs', fc1_relu, weights, 3)
+
+    elif mode == 'tit':
+
+        outputs = fc('outputs', fc1_relu, weights, 3, mode)
+
+    confidence = mx.symbol.Activation(mx.symbol.slice_axis(outputs, axis = 1, begin = 0, end = 1), 'sigmoid')
+
+    coordinate = mx.symbol.slice_axis(outputs, axis = 1, begin = 1, end = 3) # linear
     
-    return fc('outputs', weights, 3)
+    #return mx.symbol.concat(confidence, coordinate, dim = 1)
+
+    return confidence, coordinate
 
 def c3d(inputs, weights):
 
@@ -48,10 +82,10 @@ def c3d(inputs, weights):
     relu6 = mx.symbol.Activation(fc6, act_type = 'relu')
     
     fc7 = mx.symbol.FullyConnected(relu6, num_hidden = 4096, name = 'fc7')
-    #relu7 = mx.symbol.Activation(data = fc7, act_type = 'relu')
+    relu7 = mx.symbol.Activation(data = fc7, act_type = 'relu')
     #drop7 = mx.symbol.Dropout(data = relu7, p = 0.5)
 
     #Loss
     #fc8 = mx.symbol.FullyConnected(data=drop7, num_hidden=num_classes)
     #softmax = mx.symbol.SoftmaxOutput(data=fc8, label=label, name='softmax')
-    return fc7
+    return relu7

@@ -18,9 +18,19 @@ class config(object):
 
     dataset = ''
 
+    net = ''
+
     threshold = 0.7
 
     dirs = dict()
+
+    size = []
+
+    lr = 0
+
+    lmda = None
+
+    debug = False
 
     
     

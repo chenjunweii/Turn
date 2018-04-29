@@ -24,8 +24,16 @@ def iou(p, f, t = ''):
     if t == 'clip':
 
         assert(p[1] > p[0])
+        
+        try:
 
-        assert(f[1] > f[0])
+            assert(f[1] > f[0])
+
+        except:
+
+            return False
+
+            #raise ValueError('[!] f[1] {} is not greater than f[0] {}'.format(f[1], f[0]))
 
         f1 = np.copy(f)
 
@@ -59,55 +67,75 @@ def iou(p, f, t = ''):
 
         return abs(iou)
 
-def sampling(filename, size, unit_size, sample_rate, net, gpu, model, dirs, path, dataset = None, js = None, annotations = None, threshold = None, reuse = False):
+def sampling(filename, size, unit_size, sample_rate, net, gpu, model = None, dirs = '', path = None, dataset = None, js = None, annotations = None, threshold = None, reuse = False, mode = 'generate'):
 
     """
 
     filename : with filename
 
+    mode :
+
+        generate : generating hdf5 file
+
+        inference: return sampled units instead of generating hdf5 file
+
     """
 
-    if not os.path.isdir(path):
+    h5 = None
 
-        os.mkdir(path)
+    extracted = None
+
+    extracted_id = None
+
+    o = None
+
+    if mode == 'generate':
+
+        if not os.path.isdir(path):
+
+            os.mkdir(path)
+        
+        o = os.path.join(path, '{}_US[{}]_SR[{}].h5'.format(filename.split('.')[0], unit_size, sample_rate))
+
+        h5 = h5py.File(o)
+
+    elif mode == 'inference':
+
+        extracted = []
+
+        extracted_id = []
+        
+    fe = None
+
+    if net == 'c3d':
+
+        fe = c3d('extract', 1, size, gpu, model)
+
+    elif type(net) != str and reuse:
+
+        fe = net
+
+    capture = cv2.VideoCapture(os.path.join(dirs, filename))
+
+    nframes = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    fps = int(capture.get(cv2.CAP_PROP_FPS))
+
+    fb = []
+
+    fc = []
+
+    fidx = 0 # index of frame
     
-    o = os.path.join(path, '{}_US[{}]_SR[{}].h5'.format(filename.split('.')[0], unit_size, sample_rate))
-        
-    with h5py.File(o) as h5:
+    unit = None
 
-        fe = None
+    while True:
 
-        if net == 'c3d':
+        ret, frame = capture.read()
 
-            fe = c3d('extract', 1, size, gpu, model)
-
-        elif type(net) != str and reuse:
-
-            fe = net
-
-        #print(os.path.join(dirs, filename))
-
-        capture = cv2.VideoCapture(os.path.join(dirs, filename))
-
-        nframes = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        fps = int(capture.get(cv2.CAP_PROP_FPS))
-
-        fb = []
-
-        fc = []
-
-        fidx = 0 # index of frame
-        
-        unit = None
-
-        while True:
-
-            ret, frame = capture.read()
-
-            if frame is None:
-
-                #print (ret)
+        if frame is None:
+            
+            if mode == 'generate':
 
                 h5.create_dataset('feature_size', data = unit.shape, dtype = 'int32')
                 
@@ -118,43 +146,86 @@ def sampling(filename, size, unit_size, sample_rate, net, gpu, model, dirs, path
                 h5.create_dataset('nframes', data = nframes, dtype = 'int32')
                 
                 h5.create_dataset('fps', data = fps, dtype = 'int32')
-                
-                break
 
-            frame = cv2.resize(frame, (size.width, size.height))
+            #print('findex : {}, nframes : {}'.format(fidx, nframes))
+            
+            break
 
-            if fidx % sample_rate == 0:
+        frame = cv2.resize(frame, (size.width, size.height))
 
-                fb.append([])
+        frame = frame - np.array([104, 117, 123])
 
-                fc.append(fidx)
+        if fidx % sample_rate == 0:
 
-            fb[0].append(frame)
+            fb.append([])
 
-            if len(fb) == 2:
+            fc.append(fidx)
 
-                fb[1].append(frame)
+        fb[0].append(frame)
 
-            #print('fb[0] size : {}, fidx : {}, end : {}, fc : {}'.format(len(fb[0]), fidx, fc[0] + unit_size - 1, len(fc)))
+        if len(fb) == 2:
 
-            if len(fb[0]) == unit_size and fidx == fc[0] + unit_size - 1:
+            fb[1].append(frame)
 
-                unit = fe.extract(fb.pop(0))
-                
-                start = fc.pop(0)
+        #print('fb[0] size : {}, fidx : {}, end : {}, fc : {}'.format(len(fb[0]), fidx, fc[0] + unit_size - 1, len(fc)))
 
-                d = ('{}_{}'.format(start, start + unit_size - 1))
-                
+        if len(fb[0]) == unit_size:# and fidx == fc[0] + unit_size - 1:
+
+            #print('index : ', fidx)
+
+            unit = fe.extract(fb.pop(0))
+            
+            start = fc.pop(0)
+
+            d = ('{}_{}'.format(start, start + unit_size - 1))
+
+            if mode == 'generate':
+            
                 h5.create_dataset(d, data = unit, dtype = 'float')
 
-            fidx += 1
+            elif mode == 'inference':
 
-    print('[*] Unit Level feature of video [ {} ] is save to [ {} ]'.format(os.path.join(dirs, filename), o))
+                extracted.append(unit)
+
+                extracted_id.append([start, start + unit_size - 1])
+
+        fidx += 1
+    
+    if mode == 'generate':
+
+        print('[*] Unit Level feature of video [ {} ] is save to [ {} ]'.format(os.path.join(dirs, filename), o))
         
     if reuse:
-        
-        if dataset != None:
 
-            return fe, cache
+        if dataset == None and mode == 'inference':
+
+            """
+
+            Predict Unit Feature without saving as a hdf5
+
+            """
+
+            return fe, extracted
+
+        if dataset == None:
+
+            """
+
+            Save Unit Feature to hdf5 to predict
+
+            """
+
+            return fe 
 
         return fe
+
+
+    elif not reuse:
+
+        # reuse is use for training mulitple video, multiple unit can be extract by calling sampling one time
+
+        if dataset == None and mode == 'inference':
+
+            return extracted, extracted_id
+
+

@@ -20,6 +20,8 @@ parser.add_argument('-u', '--unit_size', type = int, default = 16)
 
 parser.add_argument('-s', '--sample_rate', type = int, default = 8)
 
+parser.add_argument('-f', '--force', action = 'store_true', default = False)
+
 parser.add_argument('-gpu', action = 'store_true', default = False)
 
 parser.add_argument('-ds', '--dataset', default = None)
@@ -34,6 +36,8 @@ parser.add_argument('-fd', default = '')
 
 parser.add_argument('-js', default = '')
 
+parser.add_argument('-tt', type = float, default = 3)
+
 args = parser.parse_args()
 
 dirs = dict()
@@ -42,5 +46,5 @@ dirs['video'] = args.vd
 
 dirs['feature'] = args.fd
 
-cache.generate(args.dataset, dirs, args.threshold, size(args.size), args.unit_size, args.sample_rate, args.gpu, args.model, args.net, js = None)
+cache.generate(args.dataset, dirs, args.threshold, size(args.size), args.unit_size, args.sample_rate, args.gpu, args.model, args.force, args.tt, args.net, js = None)
 

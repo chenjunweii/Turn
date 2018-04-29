@@ -84,8 +84,6 @@ class c3d(object):
         #layer_15 : (8192, 4096)
         #layer_17 : (4096, 4096)
 
-
-
         with h5py.File(self.string['model'], 'r') as h5:
 
             """
@@ -154,8 +152,9 @@ class c3d(object):
 
         pass
 
-
     def initialize(self):
+
+        print(self.string['model'])
 
         if self.string['model'] != '':
 
