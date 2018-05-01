@@ -44,7 +44,7 @@ parser.add_argument('-tb', type = int, default = 1024)
 
 parser.add_argument('-lrft', type = float, default = 0.95)
 
-parser.add_argument('-lrds', type = int, default = 2500)
+parser.add_argument('-lrds', type = int, default = 2500) # learning rate decay step
 
 parser.add_argument('-lr', type = float, default = 0.0001)
 
