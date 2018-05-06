@@ -175,6 +175,7 @@ class data(object):
             else:
 
                 v, s, e = vse
+            
             fpath = os.path.join(self.c.dirs['feature'], '{}_US[{}]_SR[{}].h5'.format(v, self.c.unit_size, self.c.sample_rate))
  
             if os.path.exists(fpath):

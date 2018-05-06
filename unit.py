@@ -6,7 +6,13 @@ import json
 
 import numpy as np
 
-from c3d import c3d
+try:
+
+    from . import c3d
+
+except:
+
+    import c3d
 
 def iou(p, f, t = ''):
 
@@ -109,7 +115,7 @@ def sampling(filename, size, unit_size, sample_rate, net, gpu, model = None, dir
 
     if net == 'c3d':
 
-        fe = c3d('extract', 1, size, gpu, model)
+        fe = c3d.c3d('extract', 1, size, gpu, model)
 
     elif type(net) != str and reuse:
 

@@ -3,8 +3,19 @@ import h5py
 import numpy as np
 import mxnet as mx
 
-import network
-from h import *
+try:
+
+    from . import network
+
+    from . import h 
+
+except:
+
+    import network
+
+    from h import *
+
+#from . import *
 
 class c3d(object):
 
