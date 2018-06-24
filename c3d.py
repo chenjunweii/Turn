@@ -19,7 +19,7 @@ except:
 
 class c3d(object):
 
-    def __init__(self, mode, nbatch, size, gpu, model = ''):
+    def __init__(self, mode, nbatch, size, gpu, unit_size, model = ''):
 
         if gpu is True:
 
@@ -32,6 +32,8 @@ class c3d(object):
         self.size = size
 
         self.nbatch = nbatch
+
+        self.unit_size = unit_size
 
         self.nd = dict()
 
@@ -147,7 +149,7 @@ class c3d(object):
 
     def build(self):
 
-        self.shape['input'] = (self.nbatch, 3, 16, self.size.height, self.size.width)
+        self.shape['input'] = (self.nbatch, 3, self.unit_size, self.size.height, self.size.width)
 
         self.symbol['feature'] = network.c3d(self.symbol['input'], self.weight)
 

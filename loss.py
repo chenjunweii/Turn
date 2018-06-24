@@ -7,4 +7,4 @@ def Cross_Entropy(p, g):
 
 def L1(p, g):
 
-    return mx.symbol.abs(p - g)# 0.5 * (p - g) ** 2 
+    return mx.symbol.abs(p - g)# 0.5 * (p - g

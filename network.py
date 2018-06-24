@@ -48,7 +48,7 @@ def c3d(inputs, weights):
 
     conv1 = mx.symbol.Convolution(inputs, kernel = (3,3,3), stride = (1,1,1), pad = (1,1,1), num_filter = 64, name = 'conv1', cudnn_tune = 'fastest', layout = 'NCDHW')
     relu1 = mx.symbol.Activation(conv1, act_type = 'relu')
-    pool1 = mx.symbol.Pooling(relu1, pool_type='max', kernel = (1,2,2), stride = (1,2,2))
+    pool1 = mx.symbol.Pooling(relu1, pool_type = 'max', kernel = (1,2,2), stride = (1,2,2))
     
     ## 2nd group
     conv2 = mx.symbol.Convolution(pool1, kernel = (3,3,3), stride = (1,1,1), pad = (1,1,1), num_filter = 128, name = 'conv2', cudnn_tune = 'fastest', layout = 'NCDHW')

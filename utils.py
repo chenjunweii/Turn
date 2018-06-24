@@ -15,8 +15,6 @@ def restore(checkpoint, args, nd, device):
 
         nd[k] = mx.nd.array(f[k], device)
 
-    
-
 def save(path, nd):
 
     if os.path.isfile(path):

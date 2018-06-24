@@ -115,7 +115,7 @@ def sampling(filename, size, unit_size, sample_rate, net, gpu, model = None, dir
 
     if net == 'c3d':
 
-        fe = c3d.c3d('extract', 1, size, gpu, model)
+        fe = c3d.c3d('extract', 1, size, gpu, unit_size, model)
 
     elif type(net) != str and reuse:
 
@@ -134,6 +134,8 @@ def sampling(filename, size, unit_size, sample_rate, net, gpu, model = None, dir
     fidx = 0 # index of frame
     
     unit = None
+
+    """
 
     while True:
 
@@ -196,9 +198,95 @@ def sampling(filename, size, unit_size, sample_rate, net, gpu, model = None, dir
                 extracted_id.append([start, start + unit_size - 1])
 
         fidx += 1
-    
-    if mode == 'generate':
 
+    """
+
+    buffers = []
+
+    while True:
+
+        ret, frame = capture.read()
+
+        if frame is None:
+            
+            if mode == 'generate':
+                
+                h5.create_dataset('sample_rate', data = sample_rate, dtype = 'int32')
+
+                h5.create_dataset('unit_size', data = unit_size, dtype = 'int32')
+
+                #h5.create_dataset('nframes', data = nframes, dtype = 'int32')
+                
+                h5.create_dataset('fps', data = fps, dtype = 'int32')
+
+            break
+
+        frame = cv2.resize(frame, (size.width, size.height))
+
+        frame = frame - np.array([104, 117, 123])
+
+        buffers.append(frame)
+
+    context_size = int((unit_size - 1) / 2)
+
+    actual_nframes = len(buffers)
+
+    for uidx in range(int(actual_nframes / sample_rate)):
+
+        fidx = uidx * sample_rate
+        
+        start = fidx - context_size
+
+        end = fidx + context_size + 1
+
+        if end >= actual_nframes:
+
+            pad = np.zeros((end - actual_nframes, ) + buffers[0].shape)
+
+            fb = np.vstack((buffers[start:], pad))
+
+        elif start < 0:
+
+            pad = np.zeros((abs(start), ) + buffers[0].shape)
+
+            fb = np.vstack((pad, buffers[:end]))
+
+        else:
+
+            fb = np.asarray(buffers[start:end])
+
+        try:
+
+            assert(fb.shape[0] == unit_size)
+
+        except:
+
+            print('fb : ', fb.shape[0])
+
+        unit = fe.extract(fb)
+
+        print('unit shape : ', unit.shape)
+            
+        d = ('{}_{}'.format(start, end))
+
+        if mode == 'generate':
+            
+            h5.create_dataset(d, data = unit, dtype = 'float')
+
+        elif mode == 'inference':
+
+            extracted.append(unit)
+
+            extracted_id.append([start, start + unit_size - 1])
+
+        fidx += 1
+
+    if mode == 'generate':
+        
+        h5.create_dataset('feature_size', data = unit.shape, dtype = 'int32')
+
+        h5.create_dataset('nframes', data = actual_nframes, dtype = 'int32')
+        
         print('[*] Unit Level feature of video [ {} ] is save to [ {} ]'.format(os.path.join(dirs, filename), o))
         
     if reuse:
